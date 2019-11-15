@@ -11,11 +11,13 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.UUID;
 import java.util.Set;
 import java.util.Timer;
@@ -59,6 +61,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //Use SharedPreference to store data
     SharedPreferences data;
     private SharedPreferences.Editor editor;
+    File storageData;
+    FileWriter fw;
 
     //Monitor battery status
     Intent batteryStatus;
@@ -94,6 +98,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         bluetoothStatus.setText("Currently connect to " +  devices.size() +" bluetooth devices");
                         if(!isCharging){
                             time ++;
+                            if(fw != null)
+                                try{
+                                    fw.append("X: " + data1 + " Y: " + data2 + " Z: " + data3 + '\n');
+                                }
+                                catch(IOException e){
+                                    System.out.print("no exist");
+                                }
                             dataDisplay1.setText("" + data1);
                             dataDisplay2.setText("" + data2);
                             dataDisplay3.setText("" + data3);
@@ -102,7 +113,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             editor.putFloat("z " + time, data3);
                             editor.commit();
                         }
-                        else{
+                        else if(isCharging){
                             // This part suppose to be connecting to bluetooth and transfer data, which is not fully accomplished yet.
 //                            BluetoothSocket socket = null;
 //                            int count = 1;
@@ -157,6 +168,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    private void createFile(String mimeType, String fileName) {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType(mimeType);
+        intent.putExtra(Intent.EXTRA_TITLE, fileName);
+        startActivityForResult(intent, 43);
+    }
     @Override
     protected final void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -164,9 +182,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        //Setting sharedPreference file
+        //Setting file on SD card and on internal storage
         data = getPreferences(Context.MODE_PRIVATE);
         editor = data.edit();
+        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
+        storageData = new File(path + "/data.txt");
+        try{
+            storageData.createNewFile();
+        }
+        catch(IOException e){
+            System.out.print("no exist");
+        }
+        try{
+            fw = new FileWriter(storageData, true) ;
+        }
+        catch(IOException e){
+            System.out.print("no exist");
+        }
 
         //Setting Battery monitor
         IntentFilter filtering = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
